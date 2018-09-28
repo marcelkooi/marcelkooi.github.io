@@ -2,4 +2,4 @@
 set -ev
 
 gatsby build
-echo "marcelkooi.com" > CNAME
+echo "marcelkooi.com" > public/CNAME

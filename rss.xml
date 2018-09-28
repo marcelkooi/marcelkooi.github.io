@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Marcel Kooi]]></title><description><![CDATA[Marcel Kooi]]></description><link>https://marcelkooi.com</link><generator>RSS for Node</generator><lastBuildDate>Fri, 28 Sep 2018 04:05:36 GMT</lastBuildDate><item><title><![CDATA[Scheduling AWS EC2 instances on Elastic Beanstalk]]></title><description><![CDATA[This guide is going to show you a simple way to schedule your AWS EC2 instances for applications using Elastic Beanstalk. Doing this allows…]]></description><link>https://marcelkooi.com/scheduling-aws-ec2-instances-on-elastic-beanstalk/</link><guid isPermaLink="false">https://marcelkooi.com/scheduling-aws-ec2-instances-on-elastic-beanstalk/</guid><content:encoded>&lt;p&gt;This guide is going to show you a simple way to schedule your AWS EC2 instances for applications using Elastic Beanstalk. Doing this allows you to &lt;strong&gt;reduce your AWS bill&lt;/strong&gt; by minimizing the amount of time you run your instances.&lt;/p&gt;
+&lt;p&gt;This can be useful if you have a separate environment that runs periodic jobs. In my case, I only needed to run the matching algorithm job for my side project &lt;a href=&quot;https://www.festtribe.com&quot;&gt;Fest Tribe&lt;/a&gt; once a day. I have a separate worker environment (named &lt;code class=&quot;language-text&quot;&gt;festtribe-worker&lt;/code&gt;) that runs this job so that I don’t slow down the application that users visit.&lt;/p&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 54.27380125086866%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAALCAYAAAB/Ca1DAAAACXBIWXMAABYlAAAWJQFJUiTwAAABlklEQVQoz41QXW/TQBD0b0a8pKitC4WUNvC7ED8A8Y4TLKuJP8/2ffiGm03WahEPnLTa83hvdmay/MMWd9uvyD/ucHP/hKt8i+v7Hd7dPV7qM65SbfLUpR7kfpvm809fsHm/w5vrJ7y9ecTm9gFZOwZMNsDYBcPQo+taBO+kluARloj/OcHN0rPnUwMfFphpRtu2aJoG4zjCOgdrHbwPCOl/CGEt6wKG0aJra+yrBt9/Vvj24wCXZjOS8DhrhcymviyLYDFGGDPIAmJaXHY61Qk36IcRz+2EUz/L4myaJnnMXuz3KMtS7t57eVzXNQ6HA/q+X+35RFhVVYrIwDmbNp8FUL0o5IUEvHddJ4+NMYKTsNgX+FUUolQfxr+iXRKwEpJMD22qZc2MmEuqiMd4zlNI0rfiOpvFyypmR1Ukp2UdGBLWtI0oZcYkYNEF+zzP6yyJV0KSlOVvsaxbeTRDLjsrjLKUGR6PR/RpXoW8UqgZjomYWLxkoiQvS2PQ7P+pkD8Y+kvLig3DIEXlxNUy7aplzjrn8QcGqUBDis7OPgAAAABJRU5ErkJggg==&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;AWS Config Dashboard&quot;
+        title=&quot;&quot;
+        src=&quot;/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-ad1f0.png&quot;
+        srcset=&quot;/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-71707.png 173w,
+/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-14127.png 345w,
+/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-ad1f0.png 690w,
+/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-6758f.png 1035w,
+/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-c0f94.png 1380w,
+/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-721ff.png 2070w,
+/static/festtribe-worker-config-dashboard-1564faa54d0e75f0e1c6ed264c64a131-60d77.png 2878w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;To begin, go to your Elastic Beanstalk dashboard and select the environment that contains the instance(s) you would like to schedule. Click on “Configuration” on the left menu so that you see a screen that looks similar to the screenshot above.&lt;/p&gt;
+&lt;p&gt;Before you make any changes to your environment, be sure to save your current configuration by clicking on the “Actions” button on the right side of the screen and selecting “Save Configuration”. It might also be a good idea for you to clone your environment before you follow these steps so that you can test out these changes before making any destructive changes to your existing application.&lt;/p&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 65.86538461538461%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAYAAACpUE5eAAAACXBIWXMAABYlAAAWJQFJUiTwAAABHElEQVQ4y52Th26GMAyEef93pCCkIrHCCnv4z5cS1KIOqKULUcbhOztemqYSBIHEcSxRFFmM4yjEvu+PQHjTNEnXddLpTtq2lXVd5b8BqZdlmYRheGaX5bm0Wktd11JV1YmiKESpUkozV0rZtbIsjz1lk7KEDMMwWCAVkClgjgL25nm2WJblW6zb9iGZAfYkSeTd+KhNdvxZGfR9f164LdmZuZk/INNlCgnkfN2ZW0VhgIgq4w3ZXuWyth2S3MWfwhJSWTLhEiRN05w+gkeE7gDy6EnIAlN1iNizhh+t9BfZF0IyABTC9/2TEDLw2cffCS8LgyF8My+HSuMjcq8v57GHZKeP5uZL/z0i5CL+5eaVaPMEXSNTeeZ3/SNeNkT7INKTjcQAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;Capacy Auto Scaling&quot;
+        title=&quot;&quot;
+        src=&quot;/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-ad1f0.png&quot;
+        srcset=&quot;/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-71707.png 173w,
+/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-14127.png 345w,
+/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-ad1f0.png 690w,
+/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-6758f.png 1035w,
+/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-c0f94.png 1380w,
+/static/auto-scaling-0385ba324b60ddcaf3a47ed34d3a65dc-6a85d.png 1664w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;Click on the “Modify” link for the Capacity setting. Set your “Environment Type” to “Load balanced” and determine the maximum and minimum number of instances you want to run. I chose 0 for the min and 1 for the max since I only need to run one instance for when the job is running, and won’t need to run any instances when the job isn’t running.&lt;/p&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 76.48428405122235%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAACXBIWXMAABYlAAAWJQFJUiTwAAABRElEQVQ4y5WTiY6EIBBE+f/vNO544X0fvT6ybdCd0QxJBxGorqpuTNu2EiexRFEkfd+LP7Zt+zrMsiwyDIOLJEmEBHmeS1VVwt48zzJN05HgmlDndV1dmOsBLhdFIWVZSl3XR7RN45I1+6zRdZ37T2IdRrPwUxlaa91hwMdxdFawDwNmDV37TI2/YBMQ5MIKFnwD+jQUx/gLLsIQELKrfwp4V4wTQw1kIo8Cwc4/eC3Ip2H8gwASVVVKHMeH+ST4zPCNZGS5Su5y+YYlazWeuHHvxN4B4pW2B2B4SMVhqyx13xXsr1gQ8G05AGHAJoE8Ghtg+vEqlbPvinECJBue8fyaHRRm9GIYhif/7trlJBlmsNGGZp1lmbx+Xsf7fmqXfx4qoL5lfEvT9HLpuXXMuEtCrrXZXojUMSQBRQmCwBXim178BVxbmn9RiONPAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;Scaling Triggers&quot;
+        title=&quot;&quot;
+        src=&quot;/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-ad1f0.png&quot;
+        srcset=&quot;/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-71707.png 173w,
+/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-14127.png 345w,
+/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-ad1f0.png 690w,
+/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-6758f.png 1035w,
+/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-c0f94.png 1380w,
+/static/scaling-triggers-f349d3a0a4618336eb581274b6c3d549-e028a.png 1718w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;Change the “Scale up increment” and “Scale down increment” to 0 since we won’t need to auto-scale based on any of the given parameters. We only need to scale based on the times we enter under the “Time-based Scaling” section.&lt;/p&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 35.06711409395973%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAHCAYAAAAIy204AAAACXBIWXMAABYlAAAWJQFJUiTwAAAA50lEQVQoz5WRXW6FIBCF2f9q+twt9LEbsMYfVK5WAUFAT525l8TetE16ki9njDAMBzFNE6qqQtu20FpjXVcYY2CthVkDtpBwHAf2fWe/1uTPCJzatg3zPHMTcmpM7n3AfyWsNZDDhEXfp6LmIQT2GCPX+Tv/896zj+OIYRjQ9z3quuZa0CTFRwmlbryAIrgipWQoEqLrOhRFgbIs0TQNNyOk7NgF3fumFF+R9JxJSoknJafcnHM8iTr3EDF+j0XkTT8F/Bu0ng96kFLEcj6gdhGCTs3Kr/gXV/m449M4LNOAl7car+8KXxtEIAy68hQ+AAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;Time Based Scaling&quot;
+        title=&quot;&quot;
+        src=&quot;/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-ad1f0.png&quot;
+        srcset=&quot;/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-71707.png 173w,
+/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-14127.png 345w,
+/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-ad1f0.png 690w,
+/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-6758f.png 1035w,
+/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-c0f94.png 1380w,
+/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-721ff.png 2070w,
+/static/time-based-scaling-4f28e1f9c50d7f8b1945ecea84bbfde9-4da35.png 2384w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;Click on the “Add scheduled action” button and create an action with settings similar to the screenshot below. This will be the action that tells AWS when you want your instance to start running. The cron schedule of &lt;code class=&quot;language-text&quot;&gt;0 15 * * *&lt;/code&gt; will make this action start at 15:00 UTC everyday. Note that you can leave the “End time” field empty. Click the “Save” button when you’re finished.&lt;/p&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 73.06226175349428%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAPCAYAAADkmO9VAAAACXBIWXMAABYlAAAWJQFJUiTwAAABj0lEQVQ4y4VT226EIBT0F/tj/as+NX3oJWnSp/bFXbWoeEMRmDJs2HVT2TWZAALDzLlkQggURYGqqtC2Le59zrldxL1sWRbM8xwwDAO01mE+TRO4Z4y5QoowItu+TsJxHNF1HcqyDHOS8JF1XQOimtSXxQNURBKSKqXCxb7vg0pr7T/bKfvZdpMKqIaxlFKiruswUjHJqTiSp5QGy1QUlVERQXJe3ouhp0smJot2mek8zwMx10xMOl5uFzx+FUNaJVHX9X4uvf01HKJLR7jbIOmZkGRF4TM7STTdC5R+g3Yf0PaCxbzvgP9foc33xTJJTzGyPnYLWumtjwXU/It+OEJ2uccBi669hh7GdrBuC+kxXZcNE9I0TRhr0aIqhe8eASEa6MWgqX225QCzuksYd7roTMjYsQ1JqNTkS2QImKbR7ymIWviE9cFJKsvWbjqFZcK6IzHnsR1jazLGrMUT4Y1OiXXHgo5tlkIs/HgnPOah5gVyUPg6DMhYdxFUsF3fw+jRyB4/xwZPn0c8PD7jD8aQlL7t0Z/HAAAAAElFTkSuQmCC&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;Scheduled Action&quot;
+        title=&quot;&quot;
+        src=&quot;/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-ad1f0.png&quot;
+        srcset=&quot;/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-71707.png 173w,
+/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-14127.png 345w,
+/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-ad1f0.png 690w,
+/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-6758f.png 1035w,
+/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-c0f94.png 1380w,
+/static/scheduled-action-1b4021ae63537c1e4f780817319a04d1-aa1b5.png 1574w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;Create another Scheduled Action with similar settings to create an action that tells AWS when you want your instance to &lt;em&gt;stop&lt;/em&gt; running. I changed the “Name” of the action to “InvokeSleep”, min and max instances to zero, and “Recurrence” to &lt;code class=&quot;language-text&quot;&gt;0 16 * * *&lt;/code&gt; so that the instance is running one hour per day (15:00 to 16:00 UTC).&lt;/p&gt;
+&lt;p&gt;Once you’re happy with your scheduled actions, click on the “Apply” button and these changes should take into effect! Note that you’ll need to wait for the “Next occurrence” of these actions to notice any differences. You can check how many instances are running by looking at the “Current status” field under the Time-based Scaling section. Your environment health will show “No data” when no instances are running.&lt;/p&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 56.424581005586596%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAALCAYAAAB/Ca1DAAAACXBIWXMAABYlAAAWJQFJUiTwAAABLklEQVQoz51SPY+CQBDdv0thSWOltRUFDYm1iTXlcT2hpSAmItEzAqEA+ZCAyztnL0s4BZO7SV5mMpt97+3MsjzP4fs+DocA/n6P4/EIzjv8N1h9uyEMQ0RR1GfOObqOi/xXsDGV+/2Otm3RNI0A1dST+BHsRB72CYwOxvAcskeZROq6FkIvT54io9mapontdovz+dyTEYnrurBtG3Ec930J9uxCEhqGAUVRMJvNsFwukaap6JOz7HoVgmVVvdxjY88i5dVqBcdx4HkeNE0TNUVRFPh6OD6dTrhcwl/3Jglp2LquQ1VVzOdzLBYLJEnSE2ZZhrIsUT0c0jyHd9nU8Ilgs9lgvV5jt9v12w+CAJZl4cP6FK5JYJJwuMkxIbkUWcuv8pZwSDr8sO9iaOAbQk5L1Irvb4AAAAAASUVORK5CYII=&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;No Data Health&quot;
+        title=&quot;&quot;
+        src=&quot;/static/no-data-health-5d9c2d8166fad31937e53f0350fc26aa-ad1f0.png&quot;
+        srcset=&quot;/static/no-data-health-5d9c2d8166fad31937e53f0350fc26aa-71707.png 173w,
+/static/no-data-health-5d9c2d8166fad31937e53f0350fc26aa-14127.png 345w,
+/static/no-data-health-5d9c2d8166fad31937e53f0350fc26aa-ad1f0.png 690w,
+/static/no-data-health-5d9c2d8166fad31937e53f0350fc26aa-c163f.png 716w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;That’s it! Hope you found this useful. Feel free to leave a comment or &lt;a href=&quot;https://www.twitter.com/lVlars&quot;&gt;reach out on twitter&lt;/a&gt; if you have any questions.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[First Post]]></title><description><![CDATA[Welcome! This is the first post on my new blog. I created this blog to kick-start my personal website. I bought the domain name marcelkooi…]]></description><link>https://marcelkooi.com/first-post/</link><guid isPermaLink="false">https://marcelkooi.com/first-post/</guid><content:encoded>&lt;p&gt;Welcome! This is the first post on my new blog. I created this blog to kick-start my personal website. I bought the domain name marcelkooi.com about 3 years ago and have been trying to throw something on there ever since. I ended up spending too much time &lt;em&gt;thinking&lt;/em&gt; about what it should look like that I never got around to &lt;em&gt;doing&lt;/em&gt; anything about it. A classic case of analysis paralysis. I finally decided I would start small and create a blog. Starting a blog should:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Allow me to write about topics that interest me&lt;/li&gt;
+&lt;li&gt;Improve my writing skills&lt;/li&gt;
+&lt;li&gt;Serve as a starting point to anything else I would like to add to my website (e.g. a portfolio)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;
+  &lt;span
+    class=&quot;gatsby-resp-image-wrapper&quot;
+    style=&quot;position: relative; display: block; ; max-width: 690px; margin-left: auto; margin-right: auto;&quot;
+  &gt;
+    &lt;span
+      class=&quot;gatsby-resp-image-background-image&quot;
+      style=&quot;padding-bottom: 66.66666666666666%; position: relative; bottom: 0; left: 0; background-image: url(&apos;data:image/jpeg;base64,/9j/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wgARCAANABQDASIAAhEBAxEB/8QAFwAAAwEAAAAAAAAAAAAAAAAAAAEDBP/EABUBAQEAAAAAAAAAAAAAAAAAAAAB/9oADAMBAAIQAxAAAAHK8zixMP/EABsQAQABBQEAAAAAAAAAAAAAAAEAAgMREiET/9oACAEBAAEFAtmejG4wXI8Kuf/EABQRAQAAAAAAAAAAAAAAAAAAABD/2gAIAQMBAT8BP//EABQRAQAAAAAAAAAAAAAAAAAAABD/2gAIAQIBAT8BP//EABgQAAIDAAAAAAAAAAAAAAAAAAAQAUFh/9oACAEBAAY/AjClK//EABsQAAICAwEAAAAAAAAAAAAAAAABEUEhMVGh/9oACAEBAAE/IVHtTzhY4QSfgtOjMubHD//aAAwDAQACAAMAAAAQwB//xAAWEQADAAAAAAAAAAAAAAAAAAAAARH/2gAIAQMBAT8QiIj/xAAVEQEBAAAAAAAAAAAAAAAAAAAAEf/aAAgBAgEBPxBX/8QAGxABAQADAQEBAAAAAAAAAAAAAREAITFRcUH/2gAIAQEAAT8QBRExrxd4ns0K9dlvzIxUO0/pjFW9cOzFUzDb6ZqJxnuf/9k=&apos;); background-size: cover; display: block;&quot;
+    &gt;
+      &lt;img
+        class=&quot;gatsby-resp-image-image&quot;
+        style=&quot;width: 100%; height: 100%; margin: 0; vertical-align: middle; position: absolute; top: 0; left: 0; box-shadow: inset 0px 0px 0px 400px white;&quot;
+        alt=&quot;unsplash&quot;
+        title=&quot;&quot;
+        src=&quot;/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-60ea6.jpeg&quot;
+        srcset=&quot;/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-b1c52.jpeg 173w,
+/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-a4b17.jpeg 345w,
+/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-60ea6.jpeg 690w,
+/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-78c06.jpeg 1035w,
+/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-9de79.jpeg 1380w,
+/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-64328.jpeg 2070w,
+/static/photo-1466692476868-aef1dfb1e735-086c353095191cb4fd97316c9b9d9a3e-30d43.jpeg 2850w&quot;
+        sizes=&quot;(max-width: 690px) 100vw, 690px&quot;
+      /&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  &lt;/p&gt;
+&lt;p&gt;There are definitely some advantages to creating a personal website. It lets you point to something to show people more about yourself and allows you to show off a few skills as a software developer. To create the blog I decided to follow &lt;a href=&quot;https://medium.freecodecamp.org/how-to-write-a-blog-using-gatsby-from-your-phone-e92a99851a04&quot;&gt;this guide&lt;/a&gt; to setup a Gatsby starter on GitHub pages and use TravisCI for deployment. I found it to be pretty straightforward. I could have gone the &lt;a href=&quot;//wordpress.com&quot;&gt;Wordpress&lt;/a&gt; or &lt;a href=&quot;https://ghost.org/&quot;&gt;Ghost&lt;/a&gt; route but figured &lt;a href=&quot;https://.gatsbyjs.org&quot;&gt;Gatsby&lt;/a&gt; would give me more flexibility for customizing my website in the future. I already know React and GraphQL seems interesting to learn.&lt;/p&gt;
+&lt;p&gt;I’m glad I finally got around to creating my personal site. As with most projects, it helps to break things down and start with a small step. It always seemed like such a daunting task since it would end up being my “official portfolio” and would need to look perfect but that’s really not the case. It’s better to have something simple to show than nothing at all. If you’re considering building your own personal site, starting a new project, or starting anything really, I’d recommend you try it out! Start with a small step and don’t let the perfect be the enemy of the good.&lt;/p&gt;</content:encoded></item></channel></rss>

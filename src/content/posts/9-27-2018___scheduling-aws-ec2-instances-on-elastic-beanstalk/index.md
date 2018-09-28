@@ -33,4 +33,4 @@ Once you're happy with your scheduled actions, click on the "Apply" button and t
 
 ![No Data Health](./no-data-health.png)
 
-That's it! Hope you found this useful. Feel free to leave a comment or [reach out on Twitter](https://www.twitter.com/lVlars) if you have any questions.
+That's it! Hope you found this useful. Feel free to leave a comment or [reach out on twitter](https://www.twitter.com/lVlars) if you have any questions.

@@ -1,6 +1,6 @@
 ---
 title: First Post
-categories: ["blogging"]
+categories: ["habits"]
 cover: photo-1466692476868-aef1dfb1e735.jpeg
 ---
 

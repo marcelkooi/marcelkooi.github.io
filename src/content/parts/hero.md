@@ -4,6 +4,6 @@ name: hero
 
 # Marcel Kooi
 
-Hello!
+Welcome!
 
 [more](./about)

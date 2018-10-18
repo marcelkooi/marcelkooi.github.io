@@ -1,4 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({
+  path: `.env.production`,
+});
+
 const config = require('./src/content/meta/config');
 
 module.exports = {
@@ -74,7 +77,7 @@ module.exports = {
     {
       resolve: `gatsby-plugin-google-analytics`,
       options: {
-        trackingId: 'UA-66779618-7',
+        trackingId: process.env.GOOGLE_ANALYTICS_ID,
       },
     },
     `gatsby-plugin-emotion`,

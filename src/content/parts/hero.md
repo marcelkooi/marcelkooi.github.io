@@ -6,4 +6,4 @@ name: hero
 
 Welcome!
 
-[more](./about)
+[more](./blog)
